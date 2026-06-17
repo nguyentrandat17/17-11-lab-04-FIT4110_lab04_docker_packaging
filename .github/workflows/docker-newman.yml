@@ -9,64 +9,54 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
 
-      - name: Install Node dependencies
+      - name: Install dependencies
         run: npm ci
 
-      - name: Lint OpenAPI contract
       - name: Lint OpenAPI
-  run: |
-    ls -la
-    npx spectral lint contracts/*.yaml --ruleset ./.spectral.yaml
+        run: |
+          npx spectral lint contracts/*.yaml --ruleset ./.spectral.yaml
 
       - name: Build Docker image
-        run: docker build -t fit4110/iot-ingestion:lab04 .
-
-      - name: Run Docker container
         run: |
-          docker compose up -d --build
-        docker ps -a
+          docker build -t fit4110/iot-ingestion:lab04 .
+
+      - name: Start container
+        run: |
+          docker run -d \
             --name fit4110-iot-lab04 \
             -p 8000:8000 \
             --env-file .env.example \
             fit4110/iot-ingestion:lab04
 
-      - name: Start containers
-  run: |
-    docker compose up -d --build
-    docker ps -a
+      - name: Wait for service
+        run: |
+          sleep 20
+          docker ps -a
+          curl http://localhost:8000/health || true
+          npx wait-on tcp:8000 --timeout 180000
 
-     - name: Check service
-  run: |
-    sleep 30
-    docker ps -a
-    curl http://localhost:8000/health || true
-    npx wait-on tcp:8000 --timeout 180000
-
-    - name: Show container logs on failure
-  if: failure()
-  run: |
-    docker compose logs || true
-
-      - name: Run Newman against Docker container
+      - name: Run Newman
         run: npm run test:local
 
-      - name: Show container logs on failure
+      - name: Show logs if failed
         if: failure()
-        run: docker logs fit4110-iot-lab04 || true
+        run: |
+          docker logs fit4110-iot-lab04 || true
 
       - name: Stop container
         if: always()
-        run: docker stop fit4110-iot-lab04 || true
+        run: |
+          docker stop fit4110-iot-lab04 || true
 
-      - name: Upload Newman reports
+      - name: Upload reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
