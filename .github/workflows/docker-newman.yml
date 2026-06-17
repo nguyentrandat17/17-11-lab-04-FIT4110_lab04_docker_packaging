@@ -38,12 +38,22 @@ jobs:
             --env-file .env.example \
             fit4110/iot-ingestion:lab04
 
-      - name: Wait for service
+      - name: Start containers
   run: |
-    sleep 20
+    docker compose up -d --build
+    docker ps -a
+
+     - name: Check service
+  run: |
+    sleep 30
     docker ps -a
     curl http://localhost:8000/health || true
     npx wait-on tcp:8000 --timeout 180000
+
+    - name: Show container logs on failure
+  if: failure()
+  run: |
+    docker compose logs || true
 
       - name: Run Newman against Docker container
         run: npm run test:local
