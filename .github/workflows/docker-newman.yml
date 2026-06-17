@@ -21,7 +21,10 @@ jobs:
         run: npm ci
 
       - name: Lint OpenAPI contract
-        run: npm run lint:openapi
+      - name: Lint OpenAPI
+  run: |
+    ls -la
+    npx spectral lint contracts/*.yaml --ruleset ./.spectral.yaml
 
       - name: Build Docker image
         run: docker build -t fit4110/iot-ingestion:lab04 .
