@@ -103,8 +103,6 @@ def build_problem(
     if instance:
         problem["instance"] = instance
     return problem
-
-
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
     if isinstance(exc.detail, dict):
@@ -112,13 +110,13 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
     else:
         problem = build_problem(
             status_code=exc.status_code,
-            title=status.HTTP_STATUS_CODES.get(exc.status_code, "HTTP Error"),
+            title="HTTP Error",
             detail=str(exc.detail),
             instance=str(request.url.path),
         )
 
     problem.setdefault("status", exc.status_code)
-    problem.setdefault("title", status.HTTP_STATUS_CODES.get(exc.status_code, "HTTP Error"))
+    problem.setdefault("title", "HTTP Error")
     problem.setdefault("type", "about:blank")
     problem.setdefault("detail", "Request failed")
     problem.setdefault("instance", str(request.url.path))
@@ -129,6 +127,7 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
         media_type="application/problem+json",
         headers=getattr(exc, "headers", None),
     )
+
 
 
 @app.exception_handler(RequestValidationError)
@@ -153,30 +152,20 @@ async def validation_exception_handler(
     )
 
 
-def verify_bearer_token(authorization: Optional[str] = Header(default=None)) -> None:
-    if not authorization:
+def verify_bearer_token(authorization: Optional[str] = Header(None)) -> None:
+    expected = f"Bearer {AUTH_TOKEN}"
+
+    if authorization is None:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=build_problem(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                title="Unauthorized",
-                detail="Missing Authorization header",
-                problem_type="https://smart-campus.local/problems/unauthorized",
-            ),
+            status_code=401,
+            detail="Missing Authorization header",
         )
 
-    expected = f"Bearer {AUTH_TOKEN}"
     if authorization != expected:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=build_problem(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                title="Unauthorized",
-                detail="Invalid bearer token",
-                problem_type="https://smart-campus.local/problems/unauthorized",
-            ),
+            status_code=401,
+            detail="Invalid bearer token",
         )
-
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
