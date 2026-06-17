@@ -33,15 +33,14 @@ jobs:
           docker run -d \
             --name fit4110-iot-lab04 \
             -p 8000:8000 \
-            --env-file .env.example \
             fit4110/iot-ingestion:lab04
 
-      - name: Wait for service
+      - name: Check container
         run: |
-          sleep 20
+          sleep 30
           docker ps -a
+          docker logs fit4110-iot-lab04 || true
           curl http://localhost:8000/health || true
-          npx wait-on tcp:8000 --timeout 180000
 
       - name: Run Newman
         run: npm run test:local
@@ -61,4 +60,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: lab04-newman-reports
-          path: reports/
+          path: reports
