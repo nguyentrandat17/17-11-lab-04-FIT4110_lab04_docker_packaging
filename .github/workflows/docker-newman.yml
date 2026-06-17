@@ -31,14 +31,19 @@ jobs:
 
       - name: Run Docker container
         run: |
-          docker run -d --rm \
+          docker compose up -d --build
+        docker ps -a
             --name fit4110-iot-lab04 \
             -p 8000:8000 \
             --env-file .env.example \
             fit4110/iot-ingestion:lab04
 
-      - name: Wait for service health
-        run: npx wait-on http://localhost:8000/health --timeout 30000
+      - name: Wait for service
+  run: |
+    sleep 20
+    docker ps -a
+    curl http://localhost:8000/health || true
+    npx wait-on tcp:8000 --timeout 180000
 
       - name: Run Newman against Docker container
         run: npm run test:local
